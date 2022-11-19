@@ -71,8 +71,104 @@ def searchArticle(dblp):
 def searchAuthor(dblp):
     pass
 
-def listVenue(dblp):
-    pass
+def listVenue(db):
+    #query number of articles published for each venue
+    dblp = db["dblp"]
+    venue_col = db["venue_col"]
+
+    #experiment
+    results = dblp.aggregate([ 
+        {
+            "$group" : {
+                "_id" : {
+                    "venue" : "$venue"
+                },
+                "countVenue" : {"$sum" : 1}
+            },
+        },
+        # {
+        #     "$lookup" : {
+        #         "from": "dblp",
+        #         "pipeline" : [
+        #             # {
+        #             #     "$match" : {"_id" : {"$in" : "$references"}}
+        #             # }
+        #         ],
+        #         "as": "refs"
+        #     } 
+        # }, 
+        {
+            "$sort" : {"countVenue" : -1}
+        },
+        {
+            "$project" : {"_id" : 0, "venue" : "$_id.venue", "countVenue" : 1 }
+        },
+        {
+            "$limit" : 10
+        }
+    ])
+
+    for doc in results:
+        print(doc)
+
+    # results2 = dblp.aggregate([
+    #     {} 
+    # ])
+    # for doc in results2:
+    #     print(doc)
+    
+
+    '''
+    results = dblp.aggregate([ 
+            {
+                "$group" : {
+                    "_id" : {"venue" : "$venue"},
+                    "countVenue" : {"$sum" : 1}
+                }
+            }, 
+            {
+                "$sort": {
+                    "countVenue": -1
+                } 
+            },
+            {
+                "$limit": 5
+            }, 
+            {
+                "$project" : {"venue" : "$_id.venue", "_id" : 0, "countVenue" : 1, "id" : "$_id.id"} 
+            }
+
+    ])
+    for r in results:
+        print(r) 
+    '''
+
+    '''
+    #experiment
+    results = dblp.aggregate([ 
+        {
+            "$lookup" : {
+                "from" : "dblp",
+                "let": {"venueVar": "$venue"},
+                "pipeline" : [
+                    {"$match": {"venue" : "$venueVar"}}
+                ],
+                "as" : "venueJoin"
+            }
+        },
+        {
+            "$limit": 5
+        },
+        {
+            "$project" : {"_id" : 0, "id" : "$_id", "venue" : 1, "venueJoin" : 1, "venueVar" : 1} 
+        }
+    ])
+
+    for doc in results:
+        print(doc)
+
+    '''
+    return
 
 def addArticle(dblp):
     pass

@@ -2,26 +2,21 @@ from pymongo import *
 import json
 import os
 
-
-
-
 # need to figure out how to do batch sizes
 def get_coll(fileName, portNum):
     cl = MongoClient('localhost', portNum)
-
     db = cl["291db"]
-
     dblp = db["dblp"]
-
+    venue_col = db["venue_col"]
     dblp.delete_many({})
+    
+    items = []
+    with open(fileName, 'r', encoding='utf-8') as f:    
+        for line in f:
+            items.append(json.loads(line))
 
-
-    os.system("mongoimport --db=291db --collection=dblp --file=" + fileName + " --batchSize=100000000")
-    # with open(fileName) as file:
-    #     file_data = json.load(file)
-
-    # db.dblp.insert_many(file_data)
-    # print("done pase one")
+    dblp.insert_many(items)
+    
     # title, authors, abstract, venue and year
     db.dblp.drop_indexes()
     db.dblp.create_index(
@@ -36,8 +31,4 @@ def get_coll(fileName, portNum):
         ]
     )
 
-   
-
-
-
-    return dblp
+    return db
