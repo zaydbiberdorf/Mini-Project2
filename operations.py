@@ -75,7 +75,47 @@ def listVenue(db):
     #query number of articles published for each venue
     dblp = db["dblp"]
     venue_col = db["venue_col"]
+    # venue_col.update_many(
+    #     {},
+    #     { "$set": {"referenced_by": []} }
+    # )  
 
+    results = venue_col.aggregate([
+        {
+            # "$lookup" : {
+            #     "from" : "dblp", 
+            #     "localField" : "id",
+            #     "foreignField": "id",
+            #     "as" : "referenced_by"
+            # },
+            
+            "$lookup" : {
+                "from" : "dblp", 
+                "let" : {
+                    "id" : "$id", 
+                    "refs": "$references" 
+                },
+                "pipeline" : [
+                    # {"$match" : {"$expr" : {"$in" : ["id", "$$refs"]}}}
+                    {"$match" : {"$expr" : {"$eq" : ["$id", "$$id"]}}}
+                    # {"$match" : {"$expr" : {"$elem" : ["$id", "$$id"]}}}
+                ],
+                "as" : "referenced_by"
+            }
+        },
+        {
+            "$limit" : 3
+        }
+    ])
+    for r in results:
+        print(r["id"], "references",  r["references"], "referenced_by", r["referenced_by"])
+    
+    # print(r["_id"])
+
+    '''
+    dblp = db["dblp"]
+    venue_col = db["venue_col"]
+    
     #experiment
     results = dblp.aggregate([ 
         {
@@ -118,6 +158,7 @@ def listVenue(db):
     #     print(doc)
     
 
+    '''
     '''
     results = dblp.aggregate([ 
             {
@@ -170,8 +211,24 @@ def listVenue(db):
     '''
     return
 
-def addArticle(dblp):
-    pass
+def addArticle(db):
+    
+    uniqueId = "abc"
+    title = "my article"
+    authors = []
+    year = "2022"
+
+    article = {
+        "abstract" : "",
+        "authors" : authors,
+        "n_citation" : 0,
+        "title" : title,
+        "venue" : "",
+        "year" : year,
+        "id" : uniqueId
+    }
+    dblp = db["dblp"]
+    dblp.insert_one(article)
 
 def exitProgram(dblp):
     pass
