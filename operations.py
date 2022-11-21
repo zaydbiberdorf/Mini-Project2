@@ -69,7 +69,69 @@ def searchArticle(dblp):
 
 
 def searchAuthor(dblp):
-    pass
+    """
+    For each author, list the author name and the number of publications. 
+    The user should be able to select an author and see the title, year and 
+    venue of all articles by that author. The result should be sorted based
+    on year with more recent articles shown first.
+    """
+
+    key = input(colors.OKGREEN + "search: " + colors.ENDC)
+    # key = ("/" + key + "/")
+
+    # creating tables
+    table = Table(title="Article Search Result", show_header=True, header_style="bold magenta", padding=1)
+    table2 = Table(title="Article Search Result", show_header=True, header_style="bold magenta", padding=1)
+
+    # adding columns to table
+    table.add_column("Number")
+    table.add_column("author")
+    table.add_column("number of publications")
+
+
+    # adding columns to table2
+    
+    table2.add_column("title")
+    table2.add_column("year")
+    table2.add_column("venue")
+    
+
+
+    # db.collection.count({$text:{$search:term}});
+
+
+    authors = []
+    # quering for the search key
+    for doc in dblp.find({"$text": {"$search": key}}, {"id": 1, "authors": 1}):
+        for author in doc["authors"]:
+            if key in author:
+                authors.append(author)
+                table.add_row(str(len(authors)), str(author), str(dblp.count_documents({"authors": author})))
+
+    
+    Console().print(table)
+
+    # if there is one or more matches:
+    # than print table and ask if they want to look at an article
+    if len(authors) > 0:
+        Console().print(table)
+        print("If you would like to select an article please provide the number of article otherwise press enter")
+        selectionNumber = input(colors.OKGREEN + "Number: " + colors.ENDC)
+        
+
+        
+        
+        if selectionNumber != "" and selectionNumber.isnumeric():
+            for doc in dblp.find({"authors": authors[int(selectionNumber) - 1]}, {"title": 1,  "venue": 1, "year": 1}):
+                table2.add_row(str(doc['title']), str(doc['year']), str(doc['venue']))
+
+
+            Console().print(table2)
+
+    else:
+        print(colors.WARNING + "No Matches" + colors.ENDC)
+    
+
 
 def listVenue(dblp):
     pass

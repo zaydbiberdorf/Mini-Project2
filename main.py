@@ -9,7 +9,7 @@ from operations import searchArticle, searchAuthor, listVenue, addArticle, exitP
 def sysStartUp():
     # get user input (file name and portnumber)
     print("please provide the following:")
-    fileName = 'dblp-ref-1m.json'  #input("File Name: ")
+    fileName = 'dblp-ref-1k.json'  #input("File Name: ")
     portNum = 27017 #input("Port Number (d = defult): ")
     # allowing user to select defult portnumber (27017)
     if portNum == 'd':
@@ -36,7 +36,7 @@ def sysHandler(dblp):
         print("\t" + colors.HEADER + colors.BOLD + "[3] " + colors.ENDC +  "Add an article")
         print(colors.FAIL + "\t[q] " + colors.ENDC + "Exit Program\n")
 
-        userChoice = '0' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
+        userChoice = input(colors.OKGREEN + "\nselection: " + colors.ENDC)
 
         if userChoice == '0':
             searchArticle(dblp)
