@@ -32,12 +32,8 @@ def get_coll(fileName, portNum):
         ("venue", TEXT),
         ("year", TEXT),
         ("id", TEXT)
-
         ]
     )
-
-   
-
 
 
     return dblp
