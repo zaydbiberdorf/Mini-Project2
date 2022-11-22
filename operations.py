@@ -74,141 +74,74 @@ def searchAuthor(dblp):
 def listVenue(db):
     #query number of articles published for each venue
     dblp = db["dblp"]
-    venue_col = db["venue_col"]
-    # venue_col.update_many(
-    #     {},
-    #     { "$set": {"referenced_by": []} }
-    # )  
+    n = 10
 
-    results = venue_col.aggregate([
-        {
-            # "$lookup" : {
-            #     "from" : "dblp", 
-            #     "localField" : "id",
-            #     "foreignField": "id",
-            #     "as" : "referenced_by"
-            # },
-            
+    results = dblp.aggregate([
+        {        
             "$lookup" : {
                 "from" : "dblp", 
                 "let" : {
                     "id" : "$id", 
-                    "refs": "$references" 
                 },
-                "pipeline" : [
-                    # {"$match" : {"$expr" : {"$in" : ["id", "$$refs"]}}}
-                    {"$match" : {"$expr" : {"$eq" : ["$id", "$$id"]}}}
-                    # {"$match" : {"$expr" : {"$elem" : ["$id", "$$id"]}}}
+                "pipeline" : [ 
+                    {
+                        "$match" : { 
+                            "references" : {"$exists" : "true"},
+                            "$expr" : {"$in" : ["$$id", "$references"]}
+                        } 
+                    },
+                    {
+                        "$project" : {
+                            "referenced_by.id": 1
+                        }
+                    }
                 ],
                 "as" : "referenced_by"
             }
+        }, 
+        {
+            "$project"  : {"id" : 1, "referenced_by" : 1} 
         },
         {
-            "$limit" : 3
-        }
+            "$addFields" : {
+                "referenced_by" : {"$size" : "$referenced_by"}
+            }   
+        } 
     ])
+    # print("Completed computation of referenced by field")
     for r in results:
-        print(r["id"], "references",  r["references"], "referenced_by", r["referenced_by"])
-    
-    # print(r["_id"])
-
-    '''
-    dblp = db["dblp"]
-    venue_col = db["venue_col"]
-    
-    #experiment
+        dblp.update_one(
+            {"_id" : r["_id"]},
+            {"$set" : {"referenced_by" : r["referenced_by"]}}
+        )
+    # print("Completed update in referenced by")
     results = dblp.aggregate([ 
+        {
+            "$match" : { "venue" : {"$ne" : ""}} 
+        },
         {
             "$group" : {
                 "_id" : {
                     "venue" : "$venue"
                 },
-                "countVenue" : {"$sum" : 1}
+                "countVenue" : {"$sum" : 1},
+                "countReference" : {"$sum" : "$referenced_by"}
             },
-        },
-        # {
-        #     "$lookup" : {
-        #         "from": "dblp",
-        #         "pipeline" : [
-        #             # {
-        #             #     "$match" : {"_id" : {"$in" : "$references"}}
-        #             # }
-        #         ],
-        #         "as": "refs"
-        #     } 
-        # }, 
+        }, 
         {
             "$sort" : {"countVenue" : -1}
         },
         {
-            "$project" : {"_id" : 0, "venue" : "$_id.venue", "countVenue" : 1 }
+            "$project" : {"_id" : 0, "venue" : "$_id.venue", "countVenue" : 1, "countReference": 1 }
         },
         {
-            "$limit" : 10
+            "$limit" : n
         }
-    ])
+    ]) 
 
-    for doc in results:
-        print(doc)
-
-    # results2 = dblp.aggregate([
-    #     {} 
-    # ])
-    # for doc in results2:
-    #     print(doc)
-    
-
-    '''
-    '''
-    results = dblp.aggregate([ 
-            {
-                "$group" : {
-                    "_id" : {"venue" : "$venue"},
-                    "countVenue" : {"$sum" : 1}
-                }
-            }, 
-            {
-                "$sort": {
-                    "countVenue": -1
-                } 
-            },
-            {
-                "$limit": 5
-            }, 
-            {
-                "$project" : {"venue" : "$_id.venue", "_id" : 0, "countVenue" : 1, "id" : "$_id.id"} 
-            }
-
-    ])
     for r in results:
         print(r) 
-    '''
 
-    '''
-    #experiment
-    results = dblp.aggregate([ 
-        {
-            "$lookup" : {
-                "from" : "dblp",
-                "let": {"venueVar": "$venue"},
-                "pipeline" : [
-                    {"$match": {"venue" : "$venueVar"}}
-                ],
-                "as" : "venueJoin"
-            }
-        },
-        {
-            "$limit": 5
-        },
-        {
-            "$project" : {"_id" : 0, "id" : "$_id", "venue" : 1, "venueJoin" : 1, "venueVar" : 1} 
-        }
-    ])
-
-    for doc in results:
-        print(doc)
-
-    '''
     return
 
 def addArticle(db):

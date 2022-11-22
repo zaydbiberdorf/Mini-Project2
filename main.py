@@ -13,6 +13,7 @@ def sysStartUp():
         db = get_coll(fileName, portNum)
         dblp = db["dblp"]
         sysHandler(dblp, db)
+        # pass
 
     else:
         print(colors.HEADER + fileName + colors.FAIL + " file does not exist" + colors.ENDC)
@@ -28,7 +29,7 @@ def sysHandler(dblp, db):
         print("\t" + colors.HEADER + colors.BOLD + "[3] " + colors.ENDC +  "Add an article")
         print(colors.FAIL + "\t[q] " + colors.ENDC + "Exit Program\n")
 
-        userChoice = '3' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
+        userChoice = '2' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
 
         if userChoice == '0':
             searchArticle(dblp)
