@@ -4,7 +4,7 @@ from os.path import exists
 from pymongo import MongoClient
 from load_json import get_coll
 from Colors import colors
-from operations import searchArticle, searchAuthor, listVenue, addArticle, exitProgram
+from operations import searchArticle, searchAuthor, listVenue, addArticle
 
 def sysStartUp():
     # get user input (file name and portnumber)
