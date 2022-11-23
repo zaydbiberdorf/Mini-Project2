@@ -15,8 +15,15 @@ def get_coll(fileName, portNum):
 
     dblp.delete_many({})
 
+    objs = []     
+    with open("dblp-ref-1k.json") as f:
+        for line in f:
+            objs.append(json.loads(line))
 
-    os.system("mongoimport --db=291db --collection=dblp --file=" + fileName + " --batchSize=100000000")
+    dblp.insert_many(objs)
+
+
+    # os.system("mongoimport --db=291db --collection=dblp --file=" + fileName + " --batchSize=100000000")
     # with open(fileName) as file:
     #     file_data = json.load(file)
 

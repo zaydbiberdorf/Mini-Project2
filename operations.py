@@ -137,7 +137,21 @@ def listVenue(dblp):
     pass
 
 def addArticle(dblp):
-    pass
 
-def exitProgram(dblp):
-    pass
+    # gettiing user input
+    print("please provide the following: ")
+    # ensuring uniqueness of id
+    unique = False
+    while(not unique):
+        uid = input("id: ")
+        if len(list(dblp.find({"id": uid}))) > 0:
+            print(colors.WARNING + "id not unique, please try another" + colors.ENDC)
+        else:
+            unique = True
+    title = input("title: ")
+    authors = input("authors (if many seporate by a ','): ")
+    authors = authors.split(",")
+    year = input("year: ")
+    
+    # inserting into database 
+    dblp.insert_one({"id": uid, "title": title, "authors": authors, "year": year, "abstract": "Null", "venue": "Null", "references": [], "n_citations": 0})
