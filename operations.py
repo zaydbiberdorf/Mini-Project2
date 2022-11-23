@@ -2,7 +2,7 @@ import re
 from Colors import colors
 from rich.console import Console
 from rich.table import Table
-
+import pprint
 
 def searchArticle(dblp):
     # Search for articles The user should be able to provide one or more keywords, 
@@ -77,7 +77,8 @@ def listVenue(db):
     n = 10
 
     results = dblp.aggregate([
-        {        
+        { "$match" : { "venue" : {"$ne" : ""}} }, 
+        {
             "$lookup" : {
                 "from" : "dblp", 
                 "let" : {
@@ -89,58 +90,40 @@ def listVenue(db):
                             "references" : {"$exists" : "true"},
                             "$expr" : {"$in" : ["$$id", "$references"]}
                         } 
-                    },
+                    }, 
                     {
                         "$project" : {
-                            "referenced_by.id": 1
+                            "_id" : 0,
+                            "id" : 1, 
+                            "referenced_by": 1,
                         }
                     }
                 ],
-                "as" : "referenced_by"
+                "as" : "referenced_by" 
             }
-        }, 
-        {
-            "$project"  : {"id" : 1, "referenced_by" : 1} 
         },
         {
-            "$addFields" : {
-                "referenced_by" : {"$size" : "$referenced_by"}
-            }   
-        } 
-    ])
-    # print("Completed computation of referenced by field")
-    for r in results:
-        dblp.update_one(
-            {"_id" : r["_id"]},
-            {"$set" : {"referenced_by" : r["referenced_by"]}}
-        )
-    # print("Completed update in referenced by")
-    results = dblp.aggregate([ 
-        {
-            "$match" : { "venue" : {"$ne" : ""}} 
+            "$project"  : {
+                "_id" : 0, 
+                "id" : 1, 
+                "venue": 1,
+                "references" : 1,
+                "referenced_by" : 1
+            } 
         },
         {
             "$group" : {
-                "_id" : {
-                    "venue" : "$venue"
-                },
+                "_id" : "$venue",
                 "countVenue" : {"$sum" : 1},
-                "countReference" : {"$sum" : "$referenced_by"}
-            },
-        }, 
-        {
-            "$sort" : {"countVenue" : -1}
+                "countReferences" : {"$sum" : {"$size" : "$referenced_by"}}
+            }
         },
-        {
-            "$project" : {"_id" : 0, "venue" : "$_id.venue", "countVenue" : 1, "countReference": 1 }
-        },
-        {
-            "$limit" : n
-        }
-    ]) 
-
+        { "$sort" : {"countVenue" : -1} },
+        { "$limit" : 10 } 
+    ])
     for r in results:
-        print(r) 
+        print("-"*90)
+        print(r)
 
     return
 
