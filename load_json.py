@@ -16,7 +16,7 @@ def timing(f):
 
 @timing
 def import_docs(fileName, portNum):
-    cmd = f"mongoimport --db=291db --collection=dblp --port=60292 --file={fileName} --batchSize=10000 --numInsertionWorkers=4"
+    cmd = f"mongoimport --db=291db --collection=dblp --port=60292 --file={fileName} --batchSize=10000 --numInsertionWorkers=20"
     os.system(cmd)
 
 @timing
@@ -63,7 +63,7 @@ def get_coll(fileName, portNum):
             }
         },  
         { "$sort" : {"countVenue" : -1}}, 
-        { "$limit" : 1},
+        { "$limit" : 3403},
         { "$unwind" : "$keepId"},
         { 
             "$project" : {

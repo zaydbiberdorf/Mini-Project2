@@ -123,7 +123,7 @@ def listVenue(db):
                 "countReferences" : {"$sum" : {"$size" : "$referenced_by"}}
             }
         },
-        { "$sort" : {"countVenue" : -1}},
+        { "$sort" : {"countReferences" : -1}},
         { "$limit" : n }
     ])
 
