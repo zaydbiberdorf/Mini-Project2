@@ -9,14 +9,11 @@ def get_coll(fileName, portNum):
     dblp = db["dblp"]
     dblp.delete_many({})
 
-    objs = []     
-    with open(fileName) as f:
-        for line in f:
-            objs.append(json.loads(line))
+    print(fileName)
+    cmd = f"mongoimport --db=291db --collection=dblp --port=60292 --file={fileName} --batchSize=10000"
 
-    # print("Completed appending to the insert list")
-    dblp.insert_many(objs)
-    # print("Completed insertion")
+    # print(cmd)
+    os.system(cmd)
     
     # title, authors, abstract, venue and year
     db.dblp.drop_indexes()
@@ -29,7 +26,7 @@ def get_coll(fileName, portNum):
         ("year", TEXT),
         ("id", TEXT)
         ]
-    ) 
-    # print("Completed index creation")
+    )
+    db.dblp.create_index([("references", -1)], name="referencesIndex")
 
     return db

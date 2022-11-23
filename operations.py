@@ -75,7 +75,6 @@ def listVenue(db):
     #query number of articles published for each venue
     dblp = db["dblp"]
     n = 10
-
     results = dblp.aggregate([
         { "$match" : { "venue" : {"$ne" : ""}} }, 
         {
@@ -123,7 +122,10 @@ def listVenue(db):
     ])
     for r in results:
         print("-"*90)
-        print(r)
+        print("venue: " + str(r["_id"]) + "\n" 
+            "# of articles in venue: "+ str(r["countVenue"]) + "\n" + 
+            "# of articles that reference an aritcle in venue: "+ str(r["countReferences"])
+        )
 
     return
 
