@@ -5,12 +5,13 @@ from Colors import colors
 from operations import searchArticle, searchAuthor, listVenue, addArticle, exitProgram
 
 def sysStartUp():
-    fileName = 'dblp-ref-1m.json'  #input("File Name: ")
+    fileName = 'dblp-ref-1k.json'  #input("File Name: ")
     portNum = 60292  #input("Port Number (d = defult): ")
     if exists(fileName):
         db = get_coll(fileName, portNum)
         dblp = db["dblp"]
         sysHandler(dblp, db)
+        pass
     else:
         print(colors.HEADER + fileName + colors.FAIL + " file does not exist" + colors.ENDC)
         sysStartUp() 
@@ -25,8 +26,8 @@ def sysHandler(dblp, db):
         print("\t" + colors.HEADER + colors.BOLD + "[3] " + colors.ENDC +  "Add an article")
         print(colors.FAIL + "\t[q] " + colors.ENDC + "Exit Program\n")
 
-        userChoice = input("choice: ") #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
-        # userChoice = '2' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
+        # userChoice = input("choice: ") #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
+        userChoice = '2' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
 
         if userChoice == '0':
             searchArticle(dblp)
@@ -44,7 +45,6 @@ def sysHandler(dblp, db):
     
 if __name__ == "__main__":
     sysStartUp()
-
 
 
 

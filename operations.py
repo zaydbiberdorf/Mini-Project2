@@ -3,6 +3,18 @@ from Colors import colors
 from rich.console import Console
 from rich.table import Table
 import pprint
+from functools import wraps
+from time import time
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f'Function {f.__name__} took {te-ts:2.4f} seconds')
+        return result
+    return wrap
 
 def searchArticle(dblp):
     # Search for articles The user should be able to provide one or more keywords, 
@@ -71,44 +83,38 @@ def searchArticle(dblp):
 def searchAuthor(dblp):
     pass
 
+@timing
 def listVenue(db):
     #query number of articles published for each venue
     dblp = db["dblp"]
-    n = 10
-    results = dblp.aggregate([
+    mini_dblp = db["mini_dblp"]
+    # n = int(input("enter # of top venues to display..."))
+    n = 10 
+    results = mini_dblp.aggregate([
         { "$match" : { "venue" : {"$ne" : ""}} }, 
         {
             "$lookup" : {
-                "from" : "dblp", 
+                "from" : "dblp",     
                 "let" : {
-                    "id" : "$id", 
+                    "id" : "$keepId"
                 },
                 "pipeline" : [ 
                     {
-                        "$match" : { 
-                            "references" : {"$exists" : "true"},
+                        "$match" : {
+                            "references" : {"$exists" : "true"}, 
                             "$expr" : {"$in" : ["$$id", "$references"]}
-                        } 
-                    }, 
+                        }
+                    },
                     {
                         "$project" : {
                             "_id" : 0,
-                            "id" : 1, 
-                            "referenced_by": 1,
+                            "id" : 1,
+                            "venue" : 1
                         }
                     }
                 ],
-                "as" : "referenced_by" 
+                "as" : "referenced_by"
             }
-        },
-        {
-            "$project"  : {
-                "_id" : 0, 
-                "id" : 1, 
-                "venue": 1,
-                "references" : 1,
-                "referenced_by" : 1
-            } 
         },
         {
             "$group" : {
@@ -117,16 +123,13 @@ def listVenue(db):
                 "countReferences" : {"$sum" : {"$size" : "$referenced_by"}}
             }
         },
-        { "$sort" : {"countVenue" : -1} },
-        { "$limit" : 10 } 
+        { "$sort" : {"countVenue" : -1}},
+        { "$limit" : n }
     ])
-    for r in results:
-        print("-"*90)
-        print("venue: " + str(r["_id"]) + "\n" 
-            "# of articles in venue: "+ str(r["countVenue"]) + "\n" + 
-            "# of articles that reference an aritcle in venue: "+ str(r["countReferences"])
-        )
 
+    for r in results:
+        print("-"*45)
+        print(r)
     return
 
 def addArticle(db):
