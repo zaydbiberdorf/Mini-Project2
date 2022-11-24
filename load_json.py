@@ -16,8 +16,8 @@ def timing(f):
     return wrap
 
 @timing
-def import_docs(fileName, portNum):
-    cmd = f"mongoimport --db=291db --collection=dblp --port=60292 --file={fileName} --batchSize=10000 --numInsertionWorkers=20"
+def import_docs(fileName, portNum): 
+    cmd = f"mongoimport --db=291db --collection=dblp --port={portNum} --file={fileName} --batchSize=10000 --numInsertionWorkers=20"
     os.system(cmd)
 
 @timing

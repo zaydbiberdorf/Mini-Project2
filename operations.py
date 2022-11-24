@@ -41,10 +41,10 @@ def searchArticle(db):
         while i < (it+4) and i < size:
             print("="*80+"\n"         
             +colors.HEADER + "ARTICLE #"+ str(i) + colors.ENDC + "\n"
-            +"ID: "+ str(results[i]["id"])+"\n"
-            +"TITLE: "+ str(results[i]["title"]) + "\n"
-            +"YEAR: "+ str(results[i]["year"]) + "\n"
-            +"VENUE: "+ str(results[i]["venue"])
+            +"Id:\t"+ str(results[i]["id"])+"\n"
+            +"Title:\t"+ str(results[i]["title"]) + "\n"
+            +"Year:\t"+ str(results[i]["year"]) + "\n"
+            +"Venue:\t"+ str(results[i]["venue"])
             )
             i += 1
         print("="*80)
@@ -87,7 +87,7 @@ def searchArticle(db):
 def searchAuthor(db):
     dblp = db["dblp"]
     
-    keyword = input("="*80+"\n"+colors.HEADER+"Artist Search:"+colors.ENDC+"\n"+"="*80)
+    keyword = input("="*80+"\n"+colors.HEADER+"Artist Search: "+colors.ENDC)
     regex = f"{keyword}"
     results = list(dblp.aggregate([
         {
@@ -208,24 +208,26 @@ def listVenue(db):
         print(r)
     return
 
-def addArticle(db):
-    
-    uniqueId = "abc"
-    title = "my article"
-    authors = []
-    year = "2022"
-
-    article = {
-        "abstract" : "",
-        "authors" : authors,
-        "n_citation" : 0,
-        "title" : title,
-        "venue" : "",
-        "year" : year,
-        "id" : uniqueId
-    }
+def addArticle(db): 
     dblp = db["dblp"]
-    dblp.insert_one(article)
+    # gettiing user input
+    print("please provide the following: ")
+    # ensuring uniqueness of id
+    unique = False
+    while(not unique):
+        uid = input("id: ")
+        if len(list(dblp.find({"id": uid}))) > 0:
+            print(colors.WARNING + "id not unique, please try another" + colors.ENDC)
+        else:
+            unique = True
+    title = input("title: ")
+    authors = input("authors (if many seporate by a ','): ")
+    authors = authors.split(",")
+    year = input("year: ")
+    
+    # inserting into database 
+    dblp.insert_one({"id": uid, "title": title, "authors": authors, "year": year, "abstract": "Null", "venue": "Null", "references": [], "n_citations": 0})
+    print(colors.HEADER+"Added article to dblp..."+colors.ENDC)
 
 def exitProgram(dblp):
     pass
