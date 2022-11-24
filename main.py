@@ -5,8 +5,8 @@ from Colors import colors
 from operations import searchArticle, searchAuthor, listVenue, addArticle, exitProgram
 
 def sysStartUp():
-    fileName = 'dblp-ref-1k.json'  #input("File Name: ")
-    portNum = 60292  #input("Port Number (d = defult): ")
+    fileName = input("File Name: ")
+    portNum = int(input("Port Number (d = defult): "))
     if exists(fileName):
         db = get_coll(fileName, portNum)
         dblp = db["dblp"]
@@ -24,20 +24,15 @@ def sysHandler(dblp, db):
         print("\t" + colors.HEADER + colors.BOLD + "[3] " + colors.ENDC +  "Add an article")
         print(colors.FAIL + "\t[q] " + colors.ENDC + "Exit Program\n")
 
-        # userChoice = input("choice: ") #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
-        userChoice = '1' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
-
-        if userChoice == '1':
+        userChoice = input("choice: ") #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
+        if userChoice == '0':
             searchArticle(db)
-            break
+        elif userChoice == '1':
+            searchAuthor(db)
         elif userChoice == '2':
-            searchAuthor(dblp)
-        elif userChoice == '3':
             listVenue(db)
-            break 
-        elif userChoice == '4':
+        elif userChoice == '3':
             addArticle(db)
-            break
         elif userChoice == 'q':
             print("good bye")
             exit()

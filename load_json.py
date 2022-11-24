@@ -26,8 +26,8 @@ def get_coll(fileName, portNum):
     db = cl["291db"]
     dblp = db["dblp"]
     dblp.delete_many({})
+    #import documents using mongoimport
     import_docs(fileName, portNum) 
-    print("imported documents") 
 
     db.dblp.create_index(
         keys=[

@@ -8,15 +8,6 @@ from time import time
 import pymongo
 from load_json import timing
 
-''' 
-Here's some test cases you guys can try for the 1.2 GB file:
-search articles with keywords "Technology bRain"(number of results: 441 results),
-"Database" (number of results: 33160), "John Research International"(number of results: 708)
-
-search author with keyword "A"(number of results: 26445), "Dave" (number of results: 296), 
-"Yao" (number of results: 1030), "Wang" (number of results: 7360)
-'''
-
 '''
  Search for articles The user should be able to provide one or more keywords, 
  and the system should retrieve all articles that match all those keywords (AND semantics). 
@@ -56,6 +47,8 @@ def searchArticle(db):
             +"VENUE: "+ str(results[i]["venue"])
             )
             i += 1
+        print("="*80)
+        print(colors.HEADER+"Number of Results: " + str(size)+colors.ENDC)
         choice = input("select index for more information on the article or any other key to see next page")
         if choice.isdigit():
             article = results[int(choice)]
@@ -83,9 +76,88 @@ def searchArticle(db):
         else:
             it += 5 
 
+''' 
+ Search for authors The user should be able to provide a keyword  and see all authors 
+ whose names contain the keyword (the matches should be case-insensitive). For each author,
+ list the author name and the number of publications. The user should be able to select an 
+ author and see the title, year and venue of all articles by that author. The result should 
+ be sorted based on year with more recent articles shown first.
+'''
 @timing
-def searchAuthor(dblp):
-    pass
+def searchAuthor(db):
+    dblp = db["dblp"]
+    
+    keyword = input("="*80+"\n"+colors.HEADER+"Artist Search:"+colors.ENDC+"\n"+"="*80)
+    regex = f"{keyword}"
+    results = list(dblp.aggregate([
+        {
+            "$match" : {"$text" : {"$search" : keyword}}
+        }, 
+        {
+            "$unwind" : "$authors"
+        },
+        { 
+            "$match" : {'authors': {"$regex": keyword}} 
+        }
+    ]))
+    unique_auth = set()
+    unique_results = []
+    for auth in results:
+        if auth["authors"] not in unique_auth:
+            unique_auth.add(auth["authors"])   
+            unique_results.append(auth)
+    it = 0
+    numAuthors = len(unique_results)
+    print("Number of authors: "+str(numAuthors))
+    while it < numAuthors:
+        i = it
+        while i < (it+10) and i < numAuthors:
+            author = unique_results[i]["authors"]
+            publications = list(dblp.aggregate([
+                {
+                    "$match" : {
+                    "$expr"  : {
+                        "$in" : [author, "$authors"]
+                        }
+                    }
+                }
+            ])) 
+            print("="*80)
+            print(colors.HEADER+f" [{i}] "+"Author: "+author+colors.ENDC)
+            print("# of publications: "+ str(len(publications)))
+            i += 1
+        choice = input("select index for more information on the article or any other key to see next page ")
+        if choice.isdigit():
+            auth = unique_results[int(choice)] 
+            print("="*80)
+            print(colors.HEADER+"Selected Author: "+colors.ENDC+auth["authors"])
+            author_publications = list(dblp.aggregate([
+                {
+                    "$match" : {
+                    "$expr"  : {
+                        "$in" : [auth["authors"], "$authors"]
+                        }
+                    }
+                },
+                {
+                    "$sort" : {"year": -1}
+                }
+            ])) 
+            for p in author_publications:
+                print(colors.HEADER+"published article: "+colors.ENDC+p["id"])
+                published_article = dblp.find({"id": p["id"]})
+                for pa in published_article:
+                    print(colors.HEADER+"Title: "+colors.ENDC+pa["title"])
+                    print(colors.HEADER+"Year: "+colors.ENDC+str(pa["year"]))
+                    if pa["venue"] == "":
+                        print(colors.HEADER+"Venue: "+colors.ENDC+"None")
+                    else:
+                        print(colors.HEADER+"Venue: "+colors.ENDC+pa["venue"])
+                    print("="*80)
+            break
+        else:
+            it += 10 
+    print("="*80)
 
 @timing
 def listVenue(db):
