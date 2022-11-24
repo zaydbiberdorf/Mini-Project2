@@ -5,81 +5,85 @@ from rich.table import Table
 import pprint
 from functools import wraps
 from time import time
+import pymongo
+from load_json import timing
 
-def timing(f):
-    @wraps(f)
-    def wrap(*args, **kw):
-        ts = time()
-        result = f(*args, **kw)
-        te = time()
-        print(f'Function {f.__name__} took {te-ts:2.4f} seconds')
-        return result
-    return wrap
+''' 
+Here's some test cases you guys can try for the 1.2 GB file:
+search articles with keywords "Technology bRain"(number of results: 441 results),
+"Database" (number of results: 33160), "John Research International"(number of results: 708)
 
-def searchArticle(dblp):
-    # Search for articles The user should be able to provide one or more keywords, 
-    # and the system should retrieve all articles that match all those keywords (AND semantics). 
-    # A keyword matches if it appears in any of title, authors, abstract, venue and year fields 
-    # (the matches should be case-insensitive). For each matching article, display the id, the title, 
-    # the year and the venue fields. The user should be able to select an article to see all fields 
-    # including the abstract and the authors in addition to the fields shown before. If the article is 
-    # referenced by other articles, the id, the title, and the year of those references should be also listed.
-    keys = input(colors.OKGREEN + "search: " + colors.ENDC)
-    # keys = re.split(r'\s+', keys)
-    
-    # keys = list(set(keys))
-    # keys = [str(key) for key in keys]
+search author with keyword "A"(number of results: 26445), "Dave" (number of results: 296), 
+"Yao" (number of results: 1030), "Wang" (number of results: 7360)
+'''
 
+'''
+ Search for articles The user should be able to provide one or more keywords, 
+ and the system should retrieve all articles that match all those keywords (AND semantics). 
+ A keyword matches if it appears in any of title, authors, abstract, venue and year fields 
+ (the matches should be case-insensitive). For each matching article, display the id, 
+ the title, the year and the venue fields. The user should be able to select an article to 
+ see all fields including the abstract and the authors in addition to the fields shown before. 
+ If the article is referenced by other articles, the id, the title, and the year of those 
+ references should be also listed.   
+'''
+@timing
+def searchArticle(db):
+    print(colors.OKGREEN+"Search for Article"+colors.ENDC)
+    keywords = input("Search for sapce separated keywords: ").split(" ") 
+    key_str = ""
+    for key in keywords:
+        q_wrp = "\\"+"\"" + key.lower() + "\"" + "\\"
+        key_str += q_wrp
+ 
+    dblp = db["dblp"] 
+    results = list(dblp.aggregate([
+        { "$match" : { 
+            "$text" : { "$search" : key_str } 
+            } 
+        } 
+    ]))
+    it = 0
+    size = len(results)
+    while it < size:
+        i = it
+        while i < (it+4) and i < size:
+            print("="*80+"\n"         
+            +colors.HEADER + "ARTICLE #"+ str(i) + colors.ENDC + "\n"
+            +"ID: "+ str(results[i]["id"])+"\n"
+            +"TITLE: "+ str(results[i]["title"]) + "\n"
+            +"YEAR: "+ str(results[i]["year"]) + "\n"
+            +"VENUE: "+ str(results[i]["venue"])
+            )
+            i += 1
+        choice = input("select index for more information on the article or any other key to see next page")
+        if choice.isdigit():
+            article = results[int(choice)]
+            print(colors.HEADER+"\nmore information about article #"+choice+" "+str(article["title"])+colors.ENDC+"\n")
+            more_info = dblp.find({"id" : article["id"]})
+            for info in more_info:
+                
+                abstractExists = len(list(dblp.find({"id": info["id"], "abstract": {"$exists": "true"}})))  
+                if abstractExists != 0:
+                    print("More Info:\n\n"+"Abstract: "+info["abstract"])
+                    for author in info["authors"]:
+                        print("Author: ", author)
 
-    # creating tables
-    table = Table(title="Article Search Result", show_header=True, header_style="bold magenta", padding=1)
-    table2 = Table(title="Article Search Result", show_header=True, header_style="bold magenta", padding=1)
+                r_count = 0
+                referencesExist = len(list(dblp.find({"id": info["id"], "references": {"$exists": "true"}})))  
+                if referencesExist:
+                    for ref in info["references"]:
+                        print(ref)
+                        full_ref = dblp.find({"id ": ref})
+                        #NEED TO PRINT REFERENCE ARTICLE INFO HERE
+                print("YEAR:"+str(info["year"]))
+                print("TITLE: "+str(info["title"]))
+                print("VENUE: "+str(info["venue"]))
+            break
+        else:
+            it += 5 
 
-    # adding columns to table
-    table.add_column("Number")
-    table.add_column("id")
-    table.add_column("title")
-    table.add_column("venue")
-    table.add_column("year")
-
-    # adding columns to table2
-    table2.add_column("id")
-    table2.add_column("author")
-    table2.add_column("title")
-    table2.add_column("venue")
-    table2.add_column("year")
-    table2.add_column("abstract")
-   
-    
-    ids = []
-    # quering for the search key
-    for doc in dblp.find({"$text": {"$search": keys}}, {"id": 1, "title": 1,  "venue": 1, "year": 1}):
-        ids.append(doc['id'])
-        table.add_row(str(len(ids)), str(doc['id']), str(doc['title']), str(doc['venue']), str(doc['year']))
-
-    # if there is one or more matches:
-    #       than print table and ask if they want to look at an article
-    if len(ids) > 0:
-        Console().print(table)
-        print("If you would like to select an article please provide the number of article otherwise press enter")
-        selectionNumber = input(colors.OKGREEN + "Number: " + colors.ENDC)
-        
-
-        
-        
-        if selectionNumber != "" and selectionNumber.isnumeric():
-            for doc in dblp.find({"$or": [{"id": ids[int(selectionNumber) - 1]}, {"references": ids[int(selectionNumber) - 1]}]}, {"id": 1, "title": 1,  "venue": 1, "year": 1, "abstract": 1, "authors": 1}):
-                table2.add_row(str(doc['id']), str(doc['authors']), str(doc['title']), str(doc['venue']), str(doc['year']))
-
-
-            Console().print(table2)
-
-    else:
-        print(colors.WARNING + "No Matches" + colors.ENDC)
-    
-            
-
-
+@timing
 def searchAuthor(dblp):
     pass
 
@@ -88,8 +92,8 @@ def listVenue(db):
     #query number of articles published for each venue
     dblp = db["dblp"]
     mini_dblp = db["mini_dblp"]
-    # n = int(input("enter # of top venues to display..."))
     n = 10 
+
     results = mini_dblp.aggregate([
         { "$match" : { "venue" : {"$ne" : ""}} }, 
         {

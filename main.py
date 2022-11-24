@@ -11,11 +11,9 @@ def sysStartUp():
         db = get_coll(fileName, portNum)
         dblp = db["dblp"]
         sysHandler(dblp, db)
-        pass
     else:
         print(colors.HEADER + fileName + colors.FAIL + " file does not exist" + colors.ENDC)
         sysStartUp() 
-
 
 def sysHandler(dblp, db):
     while True:
@@ -27,16 +25,17 @@ def sysHandler(dblp, db):
         print(colors.FAIL + "\t[q] " + colors.ENDC + "Exit Program\n")
 
         # userChoice = input("choice: ") #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
-        userChoice = '2' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
+        userChoice = '1' #input(colors.OKGREEN + "\nselection: " + colors.ENDC)
 
-        if userChoice == '0':
-            searchArticle(dblp)
-        elif userChoice == '1':
-            searchAuthor(dblp)
+        if userChoice == '1':
+            searchArticle(db)
+            break
         elif userChoice == '2':
+            searchAuthor(dblp)
+        elif userChoice == '3':
             listVenue(db)
             break 
-        elif userChoice == '3':
+        elif userChoice == '4':
             addArticle(db)
             break
         elif userChoice == 'q':
