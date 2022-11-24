@@ -20,6 +20,7 @@ from load_json import timing
 '''
 @timing
 def searchArticle(db):
+    dblp = db["dblp"] 
     print(colors.OKGREEN+"Search for Article"+colors.ENDC)
     keywords = input("Search for sapce separated keywords: ").split(" ") 
     key_str = ""
@@ -27,7 +28,6 @@ def searchArticle(db):
         q_wrp = "\\"+"\"" + key.lower() + "\"" + "\\"
         key_str += q_wrp
  
-    dblp = db["dblp"] 
     results = list(dblp.aggregate([
         { "$match" : { 
             "$text" : { "$search" : key_str } 
@@ -36,6 +36,7 @@ def searchArticle(db):
     ]))
     it = 0
     size = len(results)
+    print(colors.HEADER+"Number of Results: " + str(size)+colors.ENDC)
     while it < size:
         i = it
         while i < (it+4) and i < size:
@@ -55,23 +56,37 @@ def searchArticle(db):
             print(colors.HEADER+"\nmore information about article #"+choice+" "+str(article["title"])+colors.ENDC+"\n")
             more_info = dblp.find({"id" : article["id"]})
             for info in more_info:
+
+                print(colors.HEADER + "YEAR:  " + colors.ENDC + str(info["year"]))
+                print(colors.HEADER + "TITLE: " + colors.ENDC + str(info["title"]))
+                print(colors.HEADER + "VENUE: " + colors.ENDC + str(info["venue"]))
                 
                 abstractExists = len(list(dblp.find({"id": info["id"], "abstract": {"$exists": "true"}})))  
                 if abstractExists != 0:
-                    print("More Info:\n\n"+"Abstract: "+info["abstract"])
+                    print("Abstract: "+info["abstract"])
                     for author in info["authors"]:
                         print("Author: ", author)
+                else:
+                    print(colors.HEADER+"Abstract: "+colors.ENDC+"No Abstract")
 
                 r_count = 0
                 referencesExist = len(list(dblp.find({"id": info["id"], "references": {"$exists": "true"}})))  
                 if referencesExist:
                     for ref in info["references"]:
-                        print(ref)
-                        full_ref = dblp.find({"id ": ref})
-                        #NEED TO PRINT REFERENCE ARTICLE INFO HERE
-                print("YEAR:"+str(info["year"]))
-                print("TITLE: "+str(info["title"]))
-                print("VENUE: "+str(info["venue"]))
+                        refs = db.dblp.aggregate([{
+                            "$match" : { 
+                                "$expr" : {"$eq" : ["$id", ref]} 
+                            } 
+                        }]) 
+                        for r in refs:
+                            print("="*80)
+                            print("Article Referenced by Chosen Article:")
+                            print(colors.HEADER+"Id: "+colors.ENDC+r["id"])
+                            print(colors.HEADER+"Title: "+colors.ENDC+r["title"])
+                            print(colors.HEADER+"Year: "+colors.ENDC+r["year"])
+                            print("="*80)
+                else:
+                    print("No References!") 
             break
         else:
             it += 5 
@@ -97,7 +112,7 @@ def searchAuthor(db):
             "$unwind" : "$authors"
         },
         { 
-            "$match" : {'authors': {"$regex": keyword}} 
+            "$match" : {'authors': {"$regex": keyword, "$options" : "i"}} 
         }
     ]))
     unique_auth = set()
@@ -166,47 +181,51 @@ def listVenue(db):
     mini_dblp = db["mini_dblp"]
     n = 10 
 
-    results = mini_dblp.aggregate([
-        { "$match" : { "venue" : {"$ne" : ""}} }, 
-        {
-            "$lookup" : {
-                "from" : "dblp",     
-                "let" : {
-                    "id" : "$keepId"
-                },
-                "pipeline" : [ 
-                    {
-                        "$match" : {
-                            "references" : {"$exists" : "true"}, 
-                            "$expr" : {"$in" : ["$$id", "$references"]}
-                        }
-                    },
-                    {
-                        "$project" : {
-                            "_id" : 0,
-                            "id" : 1,
-                            "venue" : 1
-                        }
-                    }
-                ],
-                "as" : "referenced_by"
-            }
-        },
-        {
-            "$group" : {
-                "_id" : "$venue",
-                "countVenue" : {"$sum" : 1},
-                "countReferences" : {"$sum" : {"$size" : "$referenced_by"}}
-            }
-        },
-        { "$sort" : {"countReferences" : -1}},
-        { "$limit" : n }
-    ])
-
-    for r in results:
-        print("-"*45)
-        print(r)
+    '''
+    function not working
+    '''
     return
+
+    # results = mini_dblp.aggregate([
+    #     { "$match" : { "venue" : {"$ne" : ""}} }, 
+    #     {
+    #         "$lookup" : {
+    #             "from" : "dblp",     
+    #             "let" : {
+    #                 "id" : "$keepId"
+    #             },
+    #             "pipeline" : [ 
+    #                 {
+    #                     "$match" : {
+    #                         "references" : {"$exists" : "true"}, 
+    #                         "$expr" : {"$in" : ["$$id", "$references"]}
+    #                     }
+    #                 },
+    #                 {
+    #                     "$project" : {
+    #                         "_id" : 0,
+    #                         "id" : 1,
+    #                         "venue" : 1
+    #                     }
+    #                 }
+    #             ],
+    #             "as" : "referenced_by"
+    #         }
+    #     },
+    #     {
+    #         "$group" : {
+    #             "_id" : "$venue",
+    #             "countVenue" : {"$sum" : 1},
+    #             "countReferences" : {"$sum" : {"$size" : "$referenced_by"}}
+    #         }
+    #     },
+    #     { "$sort" : {"countReferences" : -1}},
+    #     { "$limit" : n }
+    # ])
+    # for r in results:
+    #     print("-"*45)
+    #     print(r)
+    # return
 
 def addArticle(db): 
     dblp = db["dblp"]
@@ -226,7 +245,7 @@ def addArticle(db):
     year = input("year: ")
     
     # inserting into database 
-    dblp.insert_one({"id": uid, "title": title, "authors": authors, "year": year, "abstract": "Null", "venue": "Null", "references": [], "n_citations": 0})
+    dblp.insert_one({"id": uid, "title": title, "authors": authors, "year": int(year), "abstract": "", "venue": "", "references": [], "n_citations": 0})
     print(colors.HEADER+"Added article to dblp..."+colors.ENDC)
 
 def exitProgram(dblp):

@@ -29,6 +29,14 @@ def get_coll(fileName, portNum):
     #import documents using mongoimport
     import_docs(fileName, portNum) 
 
+    #upadte year field to string
+    db.dblp.update_many({},
+        [{ "$set": { 
+                "year": {"$toString": "$year"}
+            }
+        }]
+    )
+    #creat text indexes
     db.dblp.create_index(
         keys=[
         ("title", pymongo.TEXT),

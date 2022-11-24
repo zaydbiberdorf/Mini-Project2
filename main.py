@@ -6,7 +6,9 @@ from operations import searchArticle, searchAuthor, listVenue, addArticle, exitP
 
 def sysStartUp():
     fileName = input("File Name: ")
+    # fileName="dblp-ref-1k.json"
     portNum = int(input("Port Number (d = defult): "))
+    # portNum = 60292
     if exists(fileName):
         db = get_coll(fileName, portNum)
         dblp = db["dblp"]
