@@ -57,9 +57,9 @@ def searchArticle(db):
             more_info = dblp.find({"id" : article["id"]})
             for info in more_info:
 
-                print(colors.HEADER + "YEAR:  " + colors.ENDC + str(info["year"]))
-                print(colors.HEADER + "TITLE: " + colors.ENDC + str(info["title"]))
-                print(colors.HEADER + "VENUE: " + colors.ENDC + str(info["venue"]))
+                print(colors.HEADER + "Year:  " + colors.ENDC + str(info["year"]))
+                print(colors.HEADER + "Title: " + colors.ENDC + str(info["title"]))
+                print(colors.HEADER + "Venue: " + colors.ENDC + str(info["venue"]))
                 
                 abstractExists = len(list(dblp.find({"id": info["id"], "abstract": {"$exists": "true"}})))  
                 if abstractExists != 0:
@@ -176,56 +176,94 @@ def searchAuthor(db):
 
 @timing
 def listVenue(db):
-    #query number of articles published for each venue
+    #breaks time requirement
     dblp = db["dblp"]
-    mini_dblp = db["mini_dblp"]
-    n = 10 
+    n = int(input("Enter number of top venues to search"))
+    result = dblp.aggregate([
+        {
+            "$match" : {
+                "venue" : {"$ne" : ""}
+            }
+        },
+        {
+            "$group" : {
+                "_id" : "$venue",
+                "countVenue" :  {"$sum" : 1},
+                "countRef" : {"$sum" : 1}
+            }
+        },
+        {
+            "$sort" : {"countVenue" : -1}
+        },
+        {
+            "$project" : {
+                "id" : 1,
+                "countVenue" : 1,
+                "countRef": 1
+            }
+        },
+        {
+            "$limit": n
+        }
+    ])
 
-    '''
-    function not working
-    '''
+    for r in result:
+        print("="*80)
+        print("Venue: ", r["_id"])
+        print("Number of Articles in Venue: ", r["countVenue"])
+        
     return
 
-    # results = mini_dblp.aggregate([
-    #     { "$match" : { "venue" : {"$ne" : ""}} }, 
-    #     {
-    #         "$lookup" : {
-    #             "from" : "dblp",     
-    #             "let" : {
-    #                 "id" : "$keepId"
-    #             },
-    #             "pipeline" : [ 
-    #                 {
-    #                     "$match" : {
-    #                         "references" : {"$exists" : "true"}, 
-    #                         "$expr" : {"$in" : ["$$id", "$references"]}
-    #                     }
-    #                 },
-    #                 {
-    #                     "$project" : {
-    #                         "_id" : 0,
-    #                         "id" : 1,
-    #                         "venue" : 1
-    #                     }
-    #                 }
-    #             ],
-    #             "as" : "referenced_by"
-    #         }
-    #     },
-    #     {
-    #         "$group" : {
-    #             "_id" : "$venue",
-    #             "countVenue" : {"$sum" : 1},
-    #             "countReferences" : {"$sum" : {"$size" : "$referenced_by"}}
-    #         }
-    #     },
-    #     { "$sort" : {"countReferences" : -1}},
-    #     { "$limit" : n }
-    # ])
-    # for r in results:
-    #     print("-"*45)
-    #     print(r)
-    # return
+    #query number of articles published for each venue
+    dblp = db["dblp"]
+    venue_col = db["venue_col"]
+    n = 10 
+    res = venue_col.aggregate([
+        {
+            "$lookup" : {
+                "from" : "venue_col",
+                "let" : {
+                    "keepIds" : "$keepIds"
+                },
+                "pipeline" : [
+                    {
+                        "$unwind" : "$keepIds"
+                    },
+                    {
+                        "$match" : {
+                            "$expr" : {
+                                "$in" : ["$$keepIds", "$keepRefs"]
+                            }
+                        }
+                    },  
+                    {
+                        "$project" : {
+                            "referenced_by" : 1
+                        }
+                    }
+                ],
+                "as" : "referenced_by"
+            }
+        },
+        {
+            "$group" : {
+                "_id" : "$venue",
+                "countRef": {"$count" : {}},
+                "countVenue" : {"$addToSet" : "$countVenue"}
+            }
+        }, 
+        {"$sort" : {"countRef" : -1}},
+        {"$limit" : n}
+    ])
+
+    for r in res:
+        print("="*80)
+        print(r["countVenue"], r["referenced_by"])
+        print("venue: " + r["venue"])
+        print("number of articles in the venue: " + str(r["countVenue"]))
+        print("number of articles referencing the venue:", len(r["referenced_by"]))
+
+    return
 
 def addArticle(db): 
     dblp = db["dblp"]
@@ -245,7 +283,7 @@ def addArticle(db):
     year = input("year: ")
     
     # inserting into database 
-    dblp.insert_one({"id": uid, "title": title, "authors": authors, "year": int(year), "abstract": "", "venue": "", "references": [], "n_citations": 0})
+    dblp.insert_one({"id": uid, "title": title, "authors": authors, "year": year, "abstract": "", "venue": "", "references": [], "n_citations": 0})
     print(colors.HEADER+"Added article to dblp..."+colors.ENDC)
 
 def exitProgram(dblp):
